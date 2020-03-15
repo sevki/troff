@@ -16,6 +16,12 @@ import (
 	"sevki.org/x/debug"
 )
 
+
+// NewRenderer returns a blackfriday.Renderer that
+// will print plan9 troff macros
+// https://plan9.io/sys/doc/troff.pdf
+func NewRenderer() blackfriday.Renderer { return &troffrenderer{} }
+
 type troffrenderer struct {
 	parsingTitle bool
 	title        titleBlock
