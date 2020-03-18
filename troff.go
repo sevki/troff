@@ -9,56 +9,26 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"time"
 
-	"github.com/araddon/dateparse"
 	blackfriday "github.com/russross/blackfriday/v2"
 	yaml "gopkg.in/yaml.v2"
 	"sevki.org/x/debug"
+	"sevki.org/x/markdown"
 )
 
 // NewRenderer returns a blackfriday.Renderer that
 // will print plan9 troff macros
 // https://plan9.io/sys/doc/troff.pdf
-func NewRenderer() blackfriday.Renderer { return &troffrenderer{} }
+func NewRenderer() markdown.Renderer { return &troffrenderer{} }
 
 type troffrenderer struct {
 	parsingTitle bool
-	title        titleBlock
+	title        *markdown.Post
 	list         []int
 	buf          *bytes.Buffer
 }
 
-type postTime struct {
-	time.Time
-}
-
-// YYYY-MM-DD hh:mm:ss tz
-const fuzzyFormat = "2006-01-02 15:04:05-07:00"
-
-func (t *postTime) UnmarshalText(text []byte) error {
-	postTime, err := dateparse.ParseAny(string(text))
-	if err != nil {
-		return err
-	}
-	t.Time = postTime
-	return nil
-}
-
-// Author information
-type Author struct {
-	Name        string
-	Affiliation string
-	Email       string
-}
-type titleBlock struct {
-	Title    string
-	Date     postTime
-	Slug     string
-	Authors  []Author
-	Abstract string
-	Tags     []string
-}
+func (r *troffrenderer) Post() *markdown.Post { return r.title }
 
 // RenderNode is the main rendering method. It will be called once for
 // every leaf node and twice for every non-leaf node (first with
@@ -193,7 +163,7 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 	case blackfriday.Heading:
 		r.parsingTitle = n.IsTitleblock
 		if n.IsTitleblock && !entering {
-			printTitleBlock(w, &r.title)
+			printTitleBlock(w, r.title)
 			return blackfriday.GoToNext
 		}
 		if entering && !n.IsTitleblock {

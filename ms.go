@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"sevki.org/x/markdown"
 )
 
 // Macro is a troff macro
@@ -192,7 +194,7 @@ func Abstract(w io.Writer, abstract string) {
 //	.I <a.Name>
 //	.I <a.Email>
 //	.AI <a.Affiliation>
-func AuthorBio(w io.Writer, a Author) {
+func AuthorBio(w io.Writer, a markdown.Author) {
 	w.Write(msPrint(author))
 	w.Write(msPrint(italic, a.Name))
 	w.Write(msPrint(italic, a.Email))
@@ -208,7 +210,7 @@ func ChangeDate(w io.Writer, d time.Time) {
 	w.Write(msPrint(changeDate, d.Format(format)))
 }
 
-func printTitleBlock(w io.Writer, bl *titleBlock) {
+func printTitleBlock(w io.Writer, bl *markdown.Post) {
 	HTML(w, bl.Title)
 	Title(w, bl.Title)
 	// Authors
