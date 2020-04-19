@@ -40,10 +40,14 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 		return blackfriday.GoToNext
 	case blackfriday.Text:
 		if r.parsingTitle {
-			if err := yaml.Unmarshal(n.Literal, &r.title); err != nil {
-				fmt.Fprint(w, err.Error())
+			magic := []byte(`title:`)
+			// BUG(sevki): we get things that are not title blocks here
+			isTitle := strings.Index(string(n.Literal), string(magic)) == 0
+			if err := yaml.Unmarshal(n.Literal, &r.title); isTitle && err != nil {
+				panic(err.Error())
 				return blackfriday.Terminate
 			}
+			r.parsingTitle = false
 			return blackfriday.GoToNext
 		}
 		if len(n.Literal) > 0 {
@@ -53,6 +57,25 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 				fmt.Fprint(w, strings.TrimLeft(string(n.Literal), " "))
 			}
 		}
+		return blackfriday.GoToNext
+	case blackfriday.BlockQuote:
+		if entering {
+			LeftAlignedParagraph(w, string(n.Literal), 1)
+		} else {
+			LineBreak(w)
+		}
+		return blackfriday.GoToNext
+	case blackfriday.HTMLBlock:
+		if entering {
+			HTML(w, string(n.Literal))
+		}
+		return blackfriday.GoToNext
+	case blackfriday.Code:
+		LineBreak(w)
+		Bold(w, string(n.Literal))
+		Roman(w)
+		return blackfriday.GoToNext
+	case blackfriday.HTMLSpan:
 		return blackfriday.GoToNext
 	case blackfriday.Paragraph:
 		if entering {
@@ -130,6 +153,8 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 		// TODO(sevki): find the link macro
 		return blackfriday.GoToNext
 	case blackfriday.Image:
+		return blackfriday.SkipChildren
+
 		if entering {
 			s := strings.Split(string(n.LinkData.Destination), "=")
 			filename := strings.TrimSpace(s[0])
@@ -143,6 +168,7 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 			default:
 				var err error
 				if filename, err = convertToPs(filename, int(width), int(height)); err != nil {
+					panic(err)
 					CodeBlock(w, []byte(err.Error()))
 					return blackfriday.Terminate
 				}
@@ -162,7 +188,10 @@ func (r *troffrenderer) RenderNode(w io.Writer, n *blackfriday.Node, entering bo
 		return blackfriday.GoToNext
 	case blackfriday.Heading:
 		r.parsingTitle = n.IsTitleblock
-		if n.IsTitleblock && !entering {
+		if n.IsTitleblock {
+			if entering {
+				return blackfriday.GoToNext
+			}
 			printTitleBlock(w, r.title)
 			return blackfriday.GoToNext
 		}

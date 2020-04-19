@@ -148,7 +148,7 @@ func LeftAlignedParagraph(w io.Writer, title string, level int) {
 
 // Bold prints
 //	.B
-func Bold(w io.Writer) { w.Write(msPrint(bold)) }
+func Bold(w io.Writer, lit ...interface{}) { w.Write(msPrint(bold, lit...)) }
 
 // Roman prints
 //	.R

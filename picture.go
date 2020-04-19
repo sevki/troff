@@ -50,6 +50,8 @@ func Picture(w io.Writer, source string, height, width float32, position Positio
 
 func convertToPs(filename string, w int, h int) (string, error) {
 	psname := strings.Replace(filename, path.Ext(filename), ".ps", -1)
+	_, psname = path.Split(psname)
+
 	args := []string{"convert"}
 
 	if w > 0 && h > 0 {
